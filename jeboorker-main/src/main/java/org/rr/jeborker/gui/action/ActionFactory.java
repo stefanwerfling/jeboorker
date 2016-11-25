@@ -1,6 +1,8 @@
 package org.rr.jeborker.gui.action;
 
 import static org.rr.jeborker.app.JeboorkerConstants.SUPPORTED_MIMES.MIME_EPUB;
+import static org.rr.jeborker.app.JeboorkerConstants.SUPPORTED_MIMES.MIME_MOBI;
+import static org.rr.jeborker.app.JeboorkerConstants.SUPPORTED_MIMES.MIME_AZW;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -52,7 +54,7 @@ public class ActionFactory {
 
 	public static enum COMMON_ACTION_TYPES {
 		ADD_BASE_PATH_ACTION, REMOVE_BASE_PATH_ACTION, REFRESH_BASE_PATH_ACTION, SHOW_HIDE_BASE_PATH_ACTION, REFRESH_ENTRY_ACTION, QUIT_ACTION, SEARCH_ACTION, REMOVE_METADATA_ENTRY_ACTION, SAVE_METADATA_ACTION, SYNC_FOLDER_ACTION, OPEN_FOLDER_ACTION, NEW_FOLDER_ACTION,
-		OPEN_FILE_ACTION, RENAME_FILE_ACTION, DELETE_FILE_ACTION, VIEW_LOG_MONITOR_ACTION, VIEW_ABOUT_DIALOG_ACTION, SHOW_METADATA_DOWNLOAD_ACTION, SHOW_PDF_SCISSORS_ACTION, SHOW_PREFERENCE_DIALOG_ACTION, COPY_TO_CLIPBOARD_ACTION, PASTE_FROM_CLIPBOARD_ACTION, FILE_SYSTEM_REFRESH_ACTION, FILE_SYSTEM_COLLAPSE_ALL_ACTION, FILE_SYSTEM_IMPORT_ACTION,
+		OPEN_FILE_ACTION, RENAME_FILE_ACTION, DELETE_FILE_ACTION, VIEW_LOG_MONITOR_ACTION, VIEW_ABOUT_DIALOG_ACTION, SHOW_METADATA_DOWNLOAD_ACTION, SHOW_PDF_SCISSORS_ACTION, SHOW_PREFERENCE_DIALOG_ACTION, COPY_TO_CLIPBOARD_ACTION, PASTE_FROM_CLIPBOARD_ACTION, FILE_SYSTEM_REFRESH_ACTION, FILE_SYSTEM_COLLAPSE_ALL_ACTION, FILE_SYSTEM_IMPORT_ACTION, MOVE_BETWEEN_BASE_FOLDER_ACTION,
 		CHANGE_LOOK_AND_FEEL_ACTION
 
 	}
@@ -142,7 +144,7 @@ public class ActionFactory {
 			public boolean canHandle(EbookPropertyItem item) {
 				String mime = item.getMimeType();
 				if(mime != null) {
-					if(mime.equals(MIME_EPUB.getMime())) {
+					if(mime.equals(MIME_EPUB.getMime()) || mime.equals(MIME_MOBI.getMime()) || mime.equals(MIME_AZW.getMime())) {
 						return MetadataHandlerFactory.hasCoverWriterSupport(item.getResourceHandler());
 					}
 				}
@@ -513,6 +515,9 @@ public class ActionFactory {
 				break;
 			case FILE_SYSTEM_IMPORT_ACTION:
 				action = new FileSystemImportAction(text);
+				break;
+			case MOVE_BETWEEN_BASE_FOLDER_ACTION:
+				action = new MoveBetweenBaseFolderAction(text);
 				break;
 		}
 

@@ -30,18 +30,8 @@ public class MetadataProperty implements Cloneable {
 	
 	protected HashMap<MetadataProperty.HINTS, Object> hints;
 	
-	static interface ActionType {
-		String getName();
-	}
-	
-	public static enum HINTS implements ActionType {
-		COVER_FROM_EBOOK_FILE_NAME {
-
-			@Override
-			public String getName() {
-				return "CoverFromEbookFileName";
-			}
-		}
+	public static enum HINTS {
+		COVER_FROM_EBOOK_FILE_NAME
 	}	
 	
 	MetadataProperty(String name, List<Object> values) {
@@ -70,6 +60,13 @@ public class MetadataProperty implements Cloneable {
 	 */
 	public String getName() {
 		return name;
+	}
+	
+	/**
+	 * Gets the code name which can be some format specific, technical information like the record types for the mobipocket format. 
+	 */
+	public String getOriginCodeName() {
+		return EMPTY;
 	}
 	
 	/**
@@ -137,6 +134,19 @@ public class MetadataProperty implements Cloneable {
 	 */
 	public boolean isEditable() {
 		return true;
+	}
+	
+
+	/**
+	 * Tells if the property should be shown to the user.
+	 * @return <code>true</code> if the property is visible or <code>false</code> if not.
+	 */
+	public boolean isVisible() {
+		return isCoverProperty();
+	}
+
+	private boolean isCoverProperty() {
+		return !IMetadataReader.COMMON_METADATA_TYPES.COVER.getName().equalsIgnoreCase(getName());
 	}
 	
 	/**
@@ -227,5 +237,9 @@ public class MetadataProperty implements Cloneable {
 			return hints.get(key);
 		}
 		return null;
+	}
+	
+	public String getAdditionalDescription() {
+		return EMPTY;
 	}
 }

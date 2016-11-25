@@ -220,6 +220,10 @@ public class MainController {
 		setMainEbookTableModel(model);
 		return model;
 	}
+	
+	public boolean isEbookPropertyFileTableModel() {
+		return mainWindow.getEbookTableHandler().getModel() instanceof EbookPropertyFileTableModel;
+	}
 
 	public void refreshTableItem(int[] selectedRows, boolean refreshMetadataSheet) {
 		mainWindow.getEbookTableHandler().refreshTableItem(selectedRows);
@@ -290,11 +294,9 @@ public class MainController {
 	 */
 	public void removeSelectedMetadataProperty() {
 		Property selectedMetadataProperty = getSelectedMetadataProperty();
-		if(selectedMetadataProperty!=null) {
-			if(selectedMetadataProperty.isEditable()) {
-				PropertySheetTableModel model = getPropertySheetHandler().getModel();
-				model.removeProperty(selectedMetadataProperty);
-			}
+		if (selectedMetadataProperty != null) {
+			PropertySheetTableModel model = getPropertySheetHandler().getModel();
+			model.removeProperty(selectedMetadataProperty);
 		}
 	}
 

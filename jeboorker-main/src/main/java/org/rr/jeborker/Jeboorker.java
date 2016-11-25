@@ -1,10 +1,8 @@
 package org.rr.jeborker;
 
 import static org.rr.commons.utils.StringUtil.EMPTY;
-import it.sauronsoftware.junique.AlreadyLockedException;
-import it.sauronsoftware.junique.JUnique;
-import it.sauronsoftware.junique.MessageHandler;
 
+import java.awt.EventQueue;
 import java.awt.Frame;
 import java.awt.SplashScreen;
 import java.io.File;
@@ -35,6 +33,10 @@ import org.rr.commons.utils.StringUtil;
 import org.rr.commons.utils.compression.rar.RarUtils;
 import org.rr.jeborker.app.JeboorkerLogger;
 import org.rr.jeborker.gui.MainController;
+
+import it.sauronsoftware.junique.AlreadyLockedException;
+import it.sauronsoftware.junique.JUnique;
+import it.sauronsoftware.junique.MessageHandler;
 
 public class Jeboorker {
 
@@ -88,7 +90,7 @@ public class Jeboorker {
 			JUnique.acquireLock(Jeboorker.class.getName(), new MessageHandler() {
 				public String handle(String message) {
 					if (mainController != null) {
-						java.awt.EventQueue.invokeLater(new Runnable() {
+						EventQueue.invokeLater(new Runnable() {
 						    @Override
 						    public void run() {
 					        int state = mainController.getMainWindow().getExtendedState();
@@ -97,8 +99,6 @@ public class Jeboorker {
 					        mainController.getMainWindow().setExtendedState(state);
 					        mainController.getMainWindow().setFocusableWindowState(false);
 						    	mainController.getMainWindow().toFront();
-					    		//seems to be needed to work. Don't know why.
-					    		ReflectionUtils.sleepSilent(1000);
 						    	mainController.getMainWindow().setFocusableWindowState(true);
 						    }
 						});

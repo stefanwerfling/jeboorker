@@ -124,14 +124,8 @@ public class ImageZipFileFetcherFactory implements IImageFetcherFactory {
 
 							@Override
 							public byte[] getImageBytes() throws IOException {
-								final CompressedDataEntry extractZipEntry = TrueZipUtils.extract(zipFile, entry);
-								final byte[] bytes = extractZipEntry.getBytes();
-//								final IResourceHandler virtualResourceLoader = ResourceHandlerFactory.getVirtualResourceLoader(extractZipEntry.getName(), bytes);
-//								final IImageProvider imageProvider = ImageProviderFactory.getImageProvider(virtualResourceLoader);
-//								
-//								this.height = imageProvider.getHeight();
-//								this.width = imageProvider.getWidth();
-								return bytes;
+								CompressedDataEntry extractZipEntry = TrueZipUtils.extract(zipFile, entry);
+								return extractZipEntry.getBytes();
 							}
 							
 						};

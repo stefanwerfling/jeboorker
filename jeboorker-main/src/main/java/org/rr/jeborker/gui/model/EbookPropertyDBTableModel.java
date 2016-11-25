@@ -15,7 +15,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.EventListenerList;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
-import javax.swing.table.TableModel;
 
 import org.rr.commons.collection.BlindElementList;
 import org.rr.commons.collection.CompoundList;
@@ -33,7 +32,7 @@ import org.rr.jeborker.db.item.EbookPropertyItemUtils;
 import com.j256.ormlite.stmt.NullArgHolder;
 import com.j256.ormlite.stmt.Where;
 
-public class EbookPropertyDBTableModel implements ReloadableTableModel {
+public class EbookPropertyDBTableModel extends AbstractEbookPropertyTableModel {
 	
 	public abstract static class EbookPropertyDBTableModelQuery {
 		public boolean isVolatile() {

@@ -17,8 +17,10 @@ import org.rr.commons.mufs.MimeUtils;
 import org.rr.commons.mufs.ResourceHandlerFactory;
 import org.rr.commons.utils.Base64;
 import org.rr.commons.utils.DateConversionUtils;
+import org.rr.commons.utils.ListUtils;
 import org.rr.commons.utils.ReflectionUtils;
 import org.rr.commons.utils.StringUtil;
+import org.rr.jeborker.app.FileRefreshBackground;
 import org.rr.jeborker.metadata.pdf.PDFDocument;
 import org.rr.pm.image.IImageProvider;
 import org.rr.pm.image.ImageInfo;
@@ -42,18 +44,13 @@ class PDFCommonMetadataWriter extends APDFCommonMetadataHandler implements IMeta
 	public void writeMetadata(List<MetadataProperty> props) {
 		try {
 			final PDFCommonMetadataReader reader = (PDFCommonMetadataReader) MetadataHandlerFactory.getReader(ebookResource);
-			final List<MetadataProperty> readMetadata = reader.readMetadata();
 
 			byte[] fetchXMPThumbnail = reader.fetchXMPThumbnail(ebookResource);
 			HashMap<String, String> info = new HashMap<String, String>();
 			XMPMetadata blankXMP = new XMPMetadata();
 
-			// flag wich tells if xmp meta data where really be created.
-			// so no empty xmp doc will be inserted.
-			boolean xmpMetadataSet = countXMPMetadataProperties(readMetadata) != countXMPMetadataProperties(props);
 			for (MetadataProperty metadataProperty : props) {
 				final String name = metadataProperty.getName();
-				final List<Object> value = metadataProperty.getValues();
 
 				if (metadataProperty instanceof PDFMetadataProperty) {
 					PDFMetadataProperty pdfMetadataProperty = (PDFMetadataProperty) metadataProperty;
@@ -64,24 +61,28 @@ class PDFCommonMetadataWriter extends APDFCommonMetadataHandler implements IMeta
 						Element xmpSchemaElement = xmpSchema.getElement();
 						Element propertyElement = pdfMetadataProperty.createElement(xmpSchemaElement.getOwnerDocument());
 						xmpSchemaElement.appendChild(propertyElement);
-						xmpMetadataSet = true;
 					} else {
 						LoggerFactory.logWarning(this, "No schema for " + pdfMetadataProperty.getName() + " witdh namespace " + namespace + " in "
 								+ ebookResource, null);
 					}
 				} else {
-					Object firstValue = value.get(0);
+					Object firstValue = ListUtils.get(metadataProperty.getValues(), 0);
 					if (ReflectionUtils.equals(metadataProperty.getPropertyClass(), Date.class)) {
 						// date must be formatted to something like D:20061204092842
-						String dateValue = DateConversionUtils.toString((Date) firstValue, DateConversionUtils.DATE_FORMATS.PDF);
+						String dateValue;
+						if(firstValue instanceof Date) {
+							dateValue = DateConversionUtils.toString((Date) firstValue, DateConversionUtils.DATE_FORMATS.PDF);
+						} else if(firstValue instanceof String) {
+							dateValue = DateConversionUtils.toString(DateConversionUtils.toDate((String) firstValue), DateConversionUtils.DATE_FORMATS.PDF);
+						} else {
+							throw new IllegalArgumentException("The value '" + firstValue + "' is no member of the expected class type.");
+						}
 						info.put(name, dateValue);
 					} else {
 						if(IMetadataReader.COMMON_METADATA_TYPES.COVER.getName().equalsIgnoreCase(name) && firstValue instanceof byte[]) {
 							fetchXMPThumbnail = (byte[]) firstValue;
-							xmpMetadataSet = true;
 						} else if(IMetadataReader.COMMON_METADATA_TYPES.COVER.getName().equalsIgnoreCase(name) && firstValue instanceof String) {
 							fetchXMPThumbnail = Base64.decode((String) firstValue);
-							xmpMetadataSet = true;
 						} else {
 							if(info.containsKey(name)) {
 								String oldValue = info.get(name);
@@ -101,10 +102,13 @@ class PDFCommonMetadataWriter extends APDFCommonMetadataHandler implements IMeta
 			}
 			
 			pdfDoc.setInfo(info);
-			pdfDoc.setXMPMetadata(xmpMetadataSet ? blankXMP.asByteArray() : null);
+			pdfDoc.setXMPMetadata(blankXMP.asByteArray());
+			FileRefreshBackground.setDisabled(true);
 			pdfDoc.write();
 		} catch (Exception e) {
 			LoggerFactory.logWarning(this, "could not write pdf meta data for " + ebookResource, e);
+		} finally {
+			FileRefreshBackground.setDisabled(false);
 		}
 	}
 
@@ -163,20 +167,5 @@ class PDFCommonMetadataWriter extends APDFCommonMetadataHandler implements IMeta
 		} catch(Exception e) {
 			LoggerFactory.logWarning(this, "Could not write metadata to " + ebookResource, e);
 		}
-	}
-	
-	/**
-	 * Evaluates the number of {@link PDFMetadataProperty} instances in the given {@link MetadataProperty} list.
-	 * @param metadataProperties The list to be tested.
-	 * @return The number of {@link PDFMetadataProperty} in the given list.
-	 */
-	private int countXMPMetadataProperties(final List<MetadataProperty> metadataProperties) {
-		int count = 0;
-		for(MetadataProperty metadataProperty : metadataProperties) {
-			if (metadataProperty instanceof PDFMetadataProperty) {
-				count ++;
-			}
-		}
-		return count;
 	}
 }

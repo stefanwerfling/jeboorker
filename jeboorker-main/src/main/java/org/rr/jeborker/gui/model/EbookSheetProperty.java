@@ -1,5 +1,7 @@
 package org.rr.jeborker.gui.model;
 
+import static org.apache.commons.lang.ObjectUtils.notEqual;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -75,7 +77,7 @@ class EbookSheetProperty extends DefaultProperty {
 				this.setChanged(false);
 				return;
 			}
-		} else if (value != null && !value.equals(editorValue)) {
+		} else if (notEqual(value, editorValue)) {
 			metadataProperty.setValue(value, this.propertyIndex);
 			this.setChanged(true);
 		} else if(value == null) {
@@ -118,7 +120,10 @@ class EbookSheetProperty extends DefaultProperty {
 			}
 			value.append(StringUtil.toString(metadataProperty.getValues().get(lpropertyIndex)));
 		}
-
+		
+		if(StringUtil.isNotBlank(metadataProperty.getAdditionalDescription())) {
+			value.append("<br/>" + metadataProperty.getAdditionalDescription());
+		}
 		return value.toString();
 	}
 
@@ -135,7 +140,7 @@ class EbookSheetProperty extends DefaultProperty {
 	}
 
 	public String getDisplayDescriptionName() {
-		final String name = metadataProperty.getName();
+		String name = (metadataProperty.getOriginCodeName() + " " + metadataProperty.getName()).trim();
 
 		String localizedName = getDisplayName();
 		localizedName += "</b><i> &lt;" + name+"&gt;</i><b>";

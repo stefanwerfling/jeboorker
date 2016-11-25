@@ -1,5 +1,6 @@
 package org.rr.jeborker.gui;
 
+import static org.apache.commons.lang.ObjectUtils.notEqual;
 import static org.rr.commons.utils.StringUtil.EMPTY;
 
 import java.awt.AWTEvent;
@@ -36,7 +37,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -50,7 +50,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -64,6 +63,8 @@ import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeExpansionEvent;
@@ -81,7 +82,6 @@ import org.rr.commons.collection.FilterList.Filter;
 import org.rr.commons.log.LoggerFactory;
 import org.rr.commons.mufs.IResourceHandler;
 import org.rr.commons.mufs.ResourceHandlerFactory;
-import org.rr.commons.mufs.ResourceHandlerUtils;
 import org.rr.commons.mufs.VirtualStaticResourceDataLoader;
 import org.rr.commons.swing.SwingUtils;
 import org.rr.commons.swing.components.JRScrollPane;
@@ -559,6 +559,13 @@ class MainView extends JFrame {
 			}
 		});
 
+		treeTabbedPane.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				EventManager.fireEvent(EventManager.EVENT_TYPES.MAIN_TREE_VISIBILITY_CHANGED, new ApplicationEvent(getEbookTableHandler().getSelectedEbookPropertyItems(), getSelectedMetadataProperty(), e.getSource()));
+			}
+		});
+		
 		filterFieldComponent.initListeners();
 		preferenceStore.addPreferenceChangeListener(new MainViewPreferenceListener());
 	}
@@ -727,6 +734,22 @@ class MainView extends JFrame {
 		FileSystemTreeCellRenderer fileSystemTreeCellRenderer = new FileSystemTreeCellRenderer();
 		fileSystemTree.setCellRenderer(fileSystemTreeCellRenderer);
 		fileSystemTree.setCellEditor(new FileSystemTreeCellEditor(fileSystemTree, fileSystemTreeCellRenderer));
+		fileSystemTree.addTreeExpansionListener(new TreeExpansionListener() {
+
+			@Override
+			public void treeExpanded(TreeExpansionEvent event) {
+				// reset the file node cache before open to take changed folders under account
+				TreePath path = event.getPath();
+				Object collapsedNode = path.getLastPathComponent();
+				if(collapsedNode instanceof FileSystemNode) {
+					((FileSystemNode) collapsedNode).reset();
+				}
+			}
+
+			@Override
+			public void treeCollapsed(TreeExpansionEvent event) {}
+		});
+		
 		if(((DefaultMutableTreeNode) fileSystemTreeModel.getRoot()).getChildCount() == 1) {
 			fileSystemTree.addTreeExpansionListener(new TreeExpansionListener() {
 
@@ -788,72 +811,75 @@ class MainView extends JFrame {
 		fileSystemTree.setTransferHandler(new TransferHandler() {
 
 			public boolean canImport(TransferHandler.TransferSupport info) {
-                return DragAndDropUtils.isFileImportRequest(info);
-            }
+				return DragAndDropUtils.isFileImportRequest(info);
+			}
 
-            public boolean importData(TransferHandler.TransferSupport info) {
-                if (!info.isDrop()) {
-                    return false;
-                }
+			public boolean importData(TransferHandler.TransferSupport info) {
+				if (!info.isDrop()) {
+					return false;
+				}
 
-                if (!DragAndDropUtils.isFileImportRequest(info)) {
-                	LoggerFactory.getLogger().log(Level.INFO, "List doesn't accept a drop of this type.");
-                    return false;
-                }
+				if (!DragAndDropUtils.isFileImportRequest(info)) {
+					LoggerFactory.getLogger().log(Level.INFO, "List doesn't accept a drop of this type.");
+					return false;
+				}
 
-                JTree.DropLocation dl = (JTree.DropLocation) info.getDropLocation();
-                TreePath dropRow = dl.getPath();
-                Object lastPath = dropRow.getLastPathComponent();
-                try {
-                	IResourceHandler targetPathResource = ((FileSystemNode) lastPath).getResource();
-                	boolean reloadParent = false;
-                	if(targetPathResource.isFileResource()) {
-                		targetPathResource = targetPathResource.getParentResource();
-                		reloadParent = true;
-                	}
-                	Transferable transferable = info.getTransferable();
-                	List<IResourceHandler> sourceResourceHandlers = ResourceHandlerFactory.getResourceHandler(transferable);
-                	for(IResourceHandler sourceResourceHandler : sourceResourceHandlers) {
-                		String basePathFor = preferenceStore.getBasePathFor(targetPathResource);
-                		if(basePathFor != null) {
-                			//drop to a folder that is managed by jeboorker.
-                			PasteFromClipboardAction.importEbookFromClipboard(transferable, Integer.MIN_VALUE, basePathFor, targetPathResource);
-                		} else {
-                			//do a simple copy
-                			IResourceHandler targetPathResourceFile = targetPathResource.addPathStatement(sourceResourceHandler.getName());
-                			IResourceHandler uniqueTargetPathResourceFile = ResourceHandlerFactory.getUniqueResourceHandler(targetPathResourceFile, targetPathResourceFile.getFileExtension());
-                			sourceResourceHandler.copyTo(uniqueTargetPathResourceFile, false);
-                		}
-                		if(reloadParent) {
-                			TreeNode node = (TreeNode) dropRow.getLastPathComponent();
-                			TreeNode parentNode = node.getParent();
-                			if(parentNode != null) {
-                				((DefaultTreeModel) fileSystemTree.getModel()).reload(parentNode);
-                			} else {
-                				((DefaultTreeModel) fileSystemTree.getModel()).reload(node);
-                			}
-                		} else {
-                			((DefaultTreeModel) fileSystemTree.getModel()).reload((TreeNode) dropRow.getLastPathComponent());
-                		}
-                	}
+				JTree.DropLocation dl = (JTree.DropLocation) info.getDropLocation();
+				TreePath dropRow = dl.getPath();
+				Object lastPath = dropRow.getLastPathComponent();
+				try {
+					IResourceHandler targetPathResource = ((FileSystemNode) lastPath).getResource();
+					boolean reloadParent = false;
+					if (targetPathResource.isFileResource()) {
+						targetPathResource = targetPathResource.getParentResource();
+						reloadParent = true;
+					}
+					Transferable transferable = info.getTransferable();
+					List<IResourceHandler> sourceResourceHandlers = ResourceHandlerFactory.getResourceHandler(transferable);
+					for (IResourceHandler sourceResourceHandler : sourceResourceHandlers) {
+						String basePathFor = preferenceStore.getBasePathFor(targetPathResource);
+						if (basePathFor != null) {
+							// drop to a folder that is managed by jeboorker.
+							PasteFromClipboardAction.importEbookFromClipboard(transferable, Integer.MIN_VALUE, basePathFor, targetPathResource);
+						} else {
+							// do a simple copy
+							IResourceHandler targetPathResourceFile = targetPathResource.addPathStatement(sourceResourceHandler.getName());
+							if(notEqual(sourceResourceHandler, targetPathResourceFile)) {
+								IResourceHandler uniqueTargetPathResourceFile = ResourceHandlerFactory.getUniqueResourceHandler(targetPathResourceFile,
+										targetPathResourceFile.getFileExtension());
+								sourceResourceHandler.copyTo(uniqueTargetPathResourceFile, false);
+							}
+						}
+						if (reloadParent) {
+							TreeNode node = (TreeNode) dropRow.getLastPathComponent();
+							TreeNode parentNode = node.getParent();
+							if (parentNode != null) {
+								((DefaultTreeModel) fileSystemTree.getModel()).reload(parentNode);
+							} else {
+								((DefaultTreeModel) fileSystemTree.getModel()).reload(node);
+							}
+						} else {
+							((DefaultTreeModel) fileSystemTree.getModel()).reload((TreeNode) dropRow.getLastPathComponent());
+						}
+					}
 				} catch (Exception e) {
 					LoggerFactory.getLogger(this).log(Level.WARNING, e.getMessage(), e);
 					return false;
 				}
-                return true;
-            }
+				return true;
+			}
 
-            public int getSourceActions(JComponent c) {
-                return COPY;
-            }
+			public int getSourceActions(JComponent c) {
+				return COPY;
+			}
 
-            /**
-             * Create a new Transferable that is used to drag files from jeboorker to a native application.
-             */
-            protected Transferable createTransferable(JComponent c) {
-            	List<IResourceHandler> selectedTreeItems = MainController.getController().getMainTreeHandler().getSelectedTreeItems();
-		        final List<URI> uriList = new ArrayList<>(selectedTreeItems.size());
-		        final List<String> files = new ArrayList<>(selectedTreeItems.size());
+			/**
+			 * Create a new Transferable that is used to drag files from jeboorker to a native application.
+			 */
+			protected Transferable createTransferable(JComponent c) {
+				List<IResourceHandler> selectedTreeItems = MainController.getController().getMainTreeHandler().getSelectedTreeItems();
+				final List<URI> uriList = new ArrayList<>(selectedTreeItems.size());
+				final List<String> files = new ArrayList<>(selectedTreeItems.size());
 
 				for (int i = 0; i < selectedTreeItems.size(); i++) {
 					IResourceHandler selectedTreeItem = selectedTreeItems.get(i);
@@ -866,17 +892,17 @@ class MainView extends JFrame {
 					}
 				}
 
-		        if(CommonUtils.isLinux()) {
-		        	if(ReflectionUtils.javaVersion() == 16) {
-		        		return new URIListTransferable(uriList, null);
-		        	} else {
-		        		return new FileTransferable(files);
-		        	}
-		        } else {
-		        	return new FileTransferable(files);
-		        }
-	        }
-        });
+				if (CommonUtils.isLinux()) {
+					if (ReflectionUtils.javaVersion() == 16) {
+						return new URIListTransferable(uriList, null);
+					} else {
+						return new FileTransferable(files);
+					}
+				} else {
+					return new FileTransferable(files);
+				}
+			}
+		});
 
 		fileSystemTree.addFocusListener(new FocusAdapter() {
 
@@ -900,7 +926,10 @@ class MainView extends JFrame {
 						return resource == null || !ActionUtils.isSupportedEbookFormat(resource, false);
 					}
 				});
-				MainController.getController().changeToFileModel(resources);
+				
+				if(!resources.isEmpty() || controller.isEbookPropertyFileTableModel()) {
+					controller.changeToFileModel(resources);
+				}
 			}
 			
 			private List<IResourceHandler> toIResourceHandler(TreePath[] path) {
@@ -1168,24 +1197,10 @@ class MainView extends JFrame {
 			menu.add(MainViewMenuUtils.createNewFolderMenuItem(basePathTree, fileSystemTree, pathNode));
 		}
 		if(items.size() >= 1) {
-			final APreferenceStore preferenceStore = PreferenceStoreFactory.getPreferenceStore(PreferenceStoreFactory.DB_STORE);
-			final List<String> basePath = preferenceStore.getBasePath();
-			final String name = Bundle.getString("MainMenuBarController.import");
-			final JMenu mnImport = new JMenu(SwingUtils.removeMnemonicMarker(name));
-
-			mnImport.setIcon(ImageResourceBundle.getResourceAsImageIcon("import_16.png"));
-			mnImport.setMnemonic(SwingUtils.getMnemonicKeyCode(name));
-			for (Iterator<String> iterator = basePath.iterator(); iterator.hasNext();) {
-				String path = iterator.next();
-				mnImport.add(MainViewMenuUtils.crateFileSystemImportTargetMenuItem(path));
-			}
-			menu.add(mnImport);
-			if(!ResourceHandlerUtils.containFilesOnly(items)) {
-				mnImport.setEnabled(false);
-			}
+			menu.add(MainViewMenuUtils.createImportToMenu(items, Bundle.getString("MainMenuBarController.import"), ActionFactory.COMMON_ACTION_TYPES.FILE_SYSTEM_IMPORT_ACTION));
 		}
 
-		menu.add(MainViewMenuUtils.createCopyToMenu());
+		menu.add(MainViewMenuUtils.createSendToMenu());
 		menu.add(MainViewMenuUtils.createDeleteMenuItem(items));
 
 		return menu;
@@ -1239,7 +1254,8 @@ class MainView extends JFrame {
 			menu.add(MainViewMenuUtils.createOpenFolderMenuItem(selectedResources));
 		}
 
-		menu.add(MainViewMenuUtils.createCopyToMenu());
+		menu.add(MainViewMenuUtils.createImportToMenu(selectedResources, Bundle.getString("MainMenuBarController.move"), ActionFactory.COMMON_ACTION_TYPES.MOVE_BETWEEN_BASE_FOLDER_ACTION));
+		menu.add(MainViewMenuUtils.createSendToMenu());
 		menu.add(MainViewMenuUtils.createDeleteMenuItem(selectedResources));
 
 		return menu;

@@ -1,5 +1,6 @@
 package org.rr.jeborker.gui.model;
 
+import static org.apache.commons.lang.ObjectUtils.notEqual;
 import static org.rr.commons.utils.StringUtil.EMPTY;
 
 import java.util.ArrayList;
@@ -80,9 +81,12 @@ public class EbookSheetPropertyModel extends PropertySheetTableModel {
 	public void removeProperty(Property property) {
 		property.setValue(EMPTY);
 		super.removeProperty(property);
-		if(property instanceof EbookSheetProperty) {
-			MetadataProperty metadataProperty = ((EbookSheetProperty)property).metadataProperty;
-			allMetadata.remove(metadataProperty);
+		if (property instanceof EbookSheetProperty) {
+			List<MetadataProperty> subProperties = ((EbookSheetProperty) property).getMetadataProperties();
+			for (MetadataProperty metadataProperty : subProperties) {
+				allMetadata.remove(metadataProperty);
+			}
+			allMetadata.remove(((EbookSheetProperty) property).metadataProperty);
 		}
 		changed = true;
 	}
@@ -280,10 +284,12 @@ public class EbookSheetPropertyModel extends PropertySheetTableModel {
 					allMetadata.removeAll(mergedProperties);
 					i--;
 				} else {
-					Property property = createProperty(metadataProperty, items, 0);
-					result.add(property);
+					if(metadataProperty.isVisible()) {
+						Property property = createProperty(metadataProperty, items, 0);
+						result.add(property);
+					}
 				}
-			} else {
+			} else if(metadataProperty.isVisible()) {
 				for (int j=0; j < values.size(); j++) {
 					Property property = createProperty(metadataProperty, items, j);
 					result.add(property);
@@ -291,17 +297,7 @@ public class EbookSheetPropertyModel extends PropertySheetTableModel {
 			}
 		}
 
-		this.removeCoverProperty(result);
-
 		return result;
-	}
-
-	protected void removeCoverProperty(List<Property> result) {
-		for(Property property : new ArrayList<Property>(result)) {
-			if(isCoverProperty(property)) {
-				result.remove(property);
-			}
-		}
 	}
 
 	/**
@@ -367,8 +363,9 @@ public class EbookSheetPropertyModel extends PropertySheetTableModel {
 
 		@Override
 		public void setValue(Object value) {
+			Object oldValue = getValue();
 			super.setValue(value);
-			if(value!=null && !value.equals(getValue())) {
+			if(notEqual(value, oldValue)) {
 				for (MetadataProperty metadataProperty : metadataProperties) {
 					metadataProperty.setValue(value, 0);
 				}
