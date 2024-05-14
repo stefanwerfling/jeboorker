@@ -59,6 +59,16 @@ public class ResourceHandlerFactory {
 	static {
 		Runtime.getRuntime().addShutdownHook(shutdownThread);
 	}
+	
+	public static IResourceHandler getTemporaryResourceFolder(String extension) {
+		File tmp = new File(System.getProperty("java.io.tmpdir"), UUID.randomUUID().toString() + (extension != null ? "." + extension : ".tmp"));
+		if (tmp.mkdirs()) {
+			IResourceHandler resourceLoader = ResourceHandlerFactory.getResourceHandler(tmp);
+			temporaryResourceLoader.add(resourceLoader);
+			return resourceLoader;
+		}
+		throw new RuntimeException("Failed to create dir " + tmp.getAbsolutePath());
+	}
 
 	/**
 	 * Creates a {@link IResourceHandler} file which points to a temporary file which is automatically deleted
@@ -70,7 +80,6 @@ public class ResourceHandlerFactory {
 		try {
 			File tmp = File.createTempFile(UUID.randomUUID().toString(), extension != null ? "." + extension : ".tmp");
 			IResourceHandler resourceLoader = ResourceHandlerFactory.getResourceHandler(tmp);
-
 			temporaryResourceLoader.add(resourceLoader);
 			return resourceLoader;
 		} catch (IOException e) {
@@ -149,6 +158,22 @@ public class ResourceHandlerFactory {
 
 		return new InputStreamResourceHandler(inputStream);
 	}
+	
+	/**
+	 * Gets a resource loader for the given <code>bytes</code>. This is helpful if there is only
+	 * bytes available which contains data to be shown to components working with {@link IResourceHandler}
+	 * objects.
+	 *
+	 * @param bytes The bytes handled by the {@link IResourceHandler}
+	 * @return The desired {@link IResourceHandler} instance.
+	 */
+	public static IResourceHandler getResourceHandler(byte[] bytes) {
+		if(bytes == null) {
+			throw new NullPointerException("could not load null resource");
+		}
+
+		return new InputStreamResourceHandler(new ByteArrayInputStream(bytes));
+	}
 
 	/**
 	 * Get a new {@link IResourceHandler} with the given {@link IResourceHandler} as parent and the
@@ -205,6 +230,10 @@ public class ResourceHandlerFactory {
 		return getUniqueResourceHandler(resourceLoader, extension);
 	}
 
+	public static IResourceHandler getUniqueResourceHandler(final IResourceHandler sibling, String extension) {
+		return getUniqueResourceHandler(sibling, null, extension);
+	}
+	
 	/**
 	 * Get a {@link IResourceHandler} instance with the given, additional extension. If the sibling
 	 * with the desired extension already exists a number will be attached at the end of the filename.
@@ -213,7 +242,7 @@ public class ResourceHandlerFactory {
 	 * @param extension the extension for the sibling {@link IResourceHandler} without the dot separator.
 	 * @return The sibling {@link IResourceHandler}.
 	 */
-	public static IResourceHandler getUniqueResourceHandler(final IResourceHandler sibling, String extension) {
+	public static IResourceHandler getUniqueResourceHandler(final IResourceHandler sibling, String addition, String extension) {
 		if(extension == null) {
 			extension = sibling.getFileExtension();
 		}
@@ -228,7 +257,7 @@ public class ResourceHandlerFactory {
 
 		int extensionNum = 0;
 		IResourceHandler result = null;
-		while( (result = getResourceHandler(siblingString + (extensionNum != 0 ? "_" + extensionNum : EMPTY) + "." + extension)).exists() ) {
+		while( (result = getResourceHandler(siblingString + (addition != null ? "_" + addition : EMPTY) + (extensionNum != 0 ? "_" + extensionNum : EMPTY) + "." + extension)).exists() ) {
 			extensionNum ++;
 		}
 		return result;

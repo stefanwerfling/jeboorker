@@ -99,7 +99,7 @@ public class PreferenceStoreFactory {
 		},
 		LOOK_AND_FEEL {
 			
-			private final String INIT_DEFAULT_VALUE = com.alee.laf.WebLookAndFeel.class.getName();
+			private final String INIT_DEFAULT_VALUE = javax.swing.plaf.metal.MetalLookAndFeel.class.getName();
 			
 			@Override
 			public String getKey() {
@@ -129,15 +129,6 @@ public class PreferenceStoreFactory {
 	private static final SystemPreferenceStore SYSTEM_STORE_INSTANCE = new SystemPreferenceStore();
 	
 	private static final PropertiesPreferenceStore PROPERTIES_STORE_INSTANCE = new PropertiesPreferenceStore();
-	
-	private static final DummyPreferenceStore DUMMY_STORE_INSTANCE = new DummyPreferenceStore();
-	
-	/**
-	 * @return a dummy preference store implementation.
-	 */
-	public static APreferenceStore getDummyPreferenceStore() {
-		return DUMMY_STORE_INSTANCE;
-	}
 	
 	/**
 	 * Get the store of the given <code>type</code>

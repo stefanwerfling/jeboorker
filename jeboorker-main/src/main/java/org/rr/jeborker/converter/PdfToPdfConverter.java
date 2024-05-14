@@ -10,6 +10,8 @@ import org.rr.commons.mufs.IResourceHandler;
 import org.rr.commons.mufs.ResourceHandlerFactory;
 import org.rr.jeborker.app.JeboorkerConstants;
 import org.rr.jeborker.app.JeboorkerConstants.SUPPORTED_MIMES;
+import org.rr.jeborker.app.preferences.APreferenceStore;
+import org.rr.jeborker.app.preferences.PreferenceStoreFactory;
 import org.rr.jeborker.gui.ConverterPreferenceController;
 import org.rr.jeborker.gui.MainController;
 import org.rr.jeborker.metadata.pdf.PDFUtils;
@@ -22,6 +24,12 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfWriter;
 
 public class PdfToPdfConverter implements IEBookConverter {
+	
+	private static String IMAGE_QUALITY_LABEL = Bundle.getString("MultipleConverter.imageQuality.label");
+	
+	private static String IMAGE_QUALITY_KEY = PdfToPdfConverter.class.getName() + "." + IMAGE_QUALITY_LABEL;
+	
+	private APreferenceStore preferenceStore = PreferenceStoreFactory.getPreferenceStore(PreferenceStoreFactory.DB_STORE);
 
 	private ConverterPreferenceController converterPreferenceController;
 	
@@ -53,10 +61,9 @@ public class PdfToPdfConverter implements IEBookConverter {
 				transferPdfContent(document, reader, writer);
 			}
 			
+		} catch (IOException e) {
+				throw e;
 		} catch (Exception e) {
-			if(e instanceof IOException) {
-				throw (IOException) e;
-			}
 			throw new IOException("Failed to convert PDF " + pdfResource.getName(), e);
 		} finally {
 			if(writer != null) {
@@ -83,6 +90,7 @@ public class PdfToPdfConverter implements IEBookConverter {
 			}			
 		}
 		
+		preferenceStore.addGenericEntryAsNumber(IMAGE_QUALITY_KEY, getImageQuality());
 		return targetPdfResource;
 	}
 	
@@ -90,7 +98,7 @@ public class PdfToPdfConverter implements IEBookConverter {
 	 * Transfers the pdf content from the reader to the writer.
 	 */
 	private void transferPdfContent(final Document document, final PdfReader reader, final PdfWriter writer) {
-		final float scale = (float) getConverterPreferenceController().getImageSize().intValue() / 100f;
+		final float scale = (float) getImageQuality() / 100f;
 		final int pageCount = reader.getNumberOfPages();
 		
 		PdfContentByte directContent = null;		
@@ -143,12 +151,17 @@ public class PdfToPdfConverter implements IEBookConverter {
      * Create a new {@link ConverterPreferenceController} instance.
      */
   public ConverterPreferenceController createConverterPreferenceController() {
-		ConverterPreferenceController controller = MainController.getController().getConverterPreferenceController();
-		controller.setShowLandscapePageEntries(false);
-		return controller;
-  }
+		ConverterPreferenceController preferenceController = MainController.getController().getConverterPreferenceController();
+		preferenceController.setShowLandscapePageEntries(false);
+		preferenceController.addCommonSlider(IMAGE_QUALITY_LABEL, preferenceStore.getGenericEntryAsNumber(IMAGE_QUALITY_KEY, 100).intValue());
+		return preferenceController;
+  }	
+  
+	private int getImageQuality() {
+		return getConverterPreferenceController().getCommonValueAsInt(IMAGE_QUALITY_LABEL);
+	}
     
 	public void setConverterPreferenceController(ConverterPreferenceController controller) {
 		this.converterPreferenceController = controller;
-	}   	
+	}   
 }

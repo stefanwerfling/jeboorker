@@ -49,6 +49,8 @@ class MainViewMenuUtils {
 	static final KeyStroke QUIT_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_MASK);
 
 	static final KeyStroke FIND_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_F, KeyEvent.CTRL_MASK);
+	
+	static final KeyStroke ESCAPE_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false);
 
 	static JMenuItem createDeleteMenuItem(List<IResourceHandler> items) {
 		Action action = ActionFactory.getActionForResource(ActionFactory.DYNAMIC_ACTION_TYPES.DELETE_FILE_ACTION, items);
@@ -109,14 +111,6 @@ class MainViewMenuUtils {
 		}
 	}
 
-	static Action createCopyToPushbulletAction(List<EbookPropertyItem> items, List<IResourceHandler> selectedTreeItems, int[] selectedEbookPropertyItemRows) {
-		if(items.isEmpty()) {
-			return ActionFactory.getActionForResource(ActionFactory.DYNAMIC_ACTION_TYPES.COPY_TO_PUSHBULLET_ACTION, selectedTreeItems);
-		} else {
-			return ActionFactory.getActionForItems(ActionFactory.DYNAMIC_ACTION_TYPES.COPY_TO_PUSHBULLET_ACTION, items, selectedEbookPropertyItemRows);
-		}
-	}
-
 	static Action createCopyToTargetAction(List<EbookPropertyItem> items, List<IResourceHandler> selectedTreeItems, int[] selectedEbookPropertyItemRows) {
 		if(items.isEmpty()) {
 			return ActionFactory.getActionForResource(ActionFactory.DYNAMIC_ACTION_TYPES.COPY_TO_TARGET_ACTION, selectedTreeItems);
@@ -140,7 +134,6 @@ class MainViewMenuUtils {
 		copyToSubMenu.setMnemonic(SwingUtils.getMnemonicKeyCode(name));
 
 		copyToSubMenu.add(createCopyToDropboxAction(items, selectedTreeItems, selectedEbookPropertyItemRows));
-		copyToSubMenu.add(createCopyToPushbulletAction(items, selectedTreeItems, selectedEbookPropertyItemRows));
 
 		Action action = createCopyToTargetAction(items, selectedTreeItems, selectedEbookPropertyItemRows);
 		IResourceHandler homeFolder = ResourceHandlerFactory.getResourceHandler(System.getProperty("user.home"));
@@ -227,5 +220,9 @@ class MainViewMenuUtils {
 
 	static void registerFileSystemRefreshKeyAction(JComponent component) {
 		component.registerKeyboardAction(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.FILE_SYSTEM_REFRESH_ACTION, null), "Refresh", REFRESH_KEY, JComponent.WHEN_FOCUSED);
+	}
+	
+	static void registerApplyFilterKeyAction(JComponent component) {
+		component.registerKeyboardAction(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.SEARCH_ACTION, null), "Search", ESCAPE_KEY, JComponent.WHEN_FOCUSED);
 	}
 }

@@ -5,16 +5,22 @@ import static org.rr.commons.utils.BooleanUtils.not;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JSlider;
 
+import org.rr.commons.collection.Pair;
 import org.rr.commons.swing.components.JRCheckBox;
+import org.rr.commons.swing.components.JRComboBox;
 import org.rr.commons.swing.dialogs.JPreferenceDialog;
 import org.rr.commons.utils.BooleanUtils;
+import org.rr.commons.utils.ListUtils;
 import org.rr.jeborker.gui.resources.ImageResourceBundle;
 import org.rr.jeborker.metadata.MetadataProperty;
 
@@ -30,9 +36,9 @@ class ConverterPreferenceView extends JPreferenceDialog {
 	
 	private boolean isInitialized = false;
 	
-	private boolean showLandscapePageEntries = true;
+	private boolean showLandscapePageEntries = false;
 	
-	private boolean showImageSizeEntry = true;
+	private List<Pair<String, ? extends JComponent>> commonComponentEntries = new ArrayList<>();
 	
 	private ConverterPreferenceController controller;
 
@@ -54,27 +60,9 @@ class ConverterPreferenceView extends JPreferenceDialog {
 		if(not(isInitialized)) {
 			isInitialized = true;
 			setIconImage(ImageResourceBundle.getResourceAsImageIcon("preferences_16.png").getImage());
-			final String generalCategory = Bundle.getString("ConverterPreferenceView.tab.general");
+			String generalCategory = Bundle.getString("ConverterPreferenceView.tab.general");
 			createLandscapePageEntries(generalCategory);
-			createImageSizeEntries(generalCategory);
-		}
-	}
-	
-	/**
-	 * Create and add the image resize slider.
-	 */
-	private void createImageSizeEntries(final String generalCategory) {
-		if(isShowImageSizeEntry()) {
-			final JSlider reduceValue = new JSlider(JSlider.HORIZONTAL, 10, 100, 100);
-			reduceValue.setMajorTickSpacing(10);
-			reduceValue.setMinorTickSpacing(5);
-			reduceValue.setPaintTicks(true);
-			reduceValue.setPaintLabels(true);
-			reduceValue.setSnapToTicks(true);
-			reduceValue.setMinimumSize(new Dimension(220, 45));
-			String reduceImageQualityLabel = Bundle.getString("ConverterPreferenceView.pref.reduceImageQuality");
-			PreferenceEntry reduceImageQualityItem = new PreferenceEntry(REDUCE_IMAGE_SIZE_PREFERENCE_NAME, reduceImageQualityLabel, reduceValue, generalCategory);
-			addPreferenceEntry(reduceImageQualityItem);
+			createCommonComponentEntries(generalCategory);
 		}
 	}
 
@@ -83,7 +71,7 @@ class ConverterPreferenceView extends JPreferenceDialog {
 	 * The combobox provides options like rotate or split. The manga checkbox for the
 	 * split option is also added here.
 	 */
-	private void createLandscapePageEntries(final String generalCategory) {
+	private void createLandscapePageEntries(final String category) {
 		if(isShowLandscapePageEntries()) {
 			final JComboBox<String> landscapeFormatCombobox = new JComboBox<>();
 			final JRCheckBox isMangaCheckBox = new JRCheckBox();
@@ -111,32 +99,30 @@ class ConverterPreferenceView extends JPreferenceDialog {
 					}
 				}
 			});
-			PreferenceEntry landscapeFormatItem = new PreferenceEntry(LANDSCAPE_FORMAT_PREFERENCE_NAME, landscapeFormatLabel, landscapeFormatCombobox, generalCategory);
+			PreferenceEntry landscapeFormatItem = new PreferenceEntry(LANDSCAPE_FORMAT_PREFERENCE_NAME, landscapeFormatLabel, landscapeFormatCombobox, category);
 			addPreferenceEntry(landscapeFormatItem);
 			
 			String isMangaLabel = Bundle.getString("ConverterPreferenceView.pref.isManga");
-			PreferenceEntry isMangaItem = new PreferenceEntry(IS_MANGA_PREFERENCE_NAME, isMangaLabel, isMangaCheckBox, generalCategory);
+			PreferenceEntry isMangaItem = new PreferenceEntry(IS_MANGA_PREFERENCE_NAME, isMangaLabel, isMangaCheckBox, category);
 			addPreferenceEntry(isMangaItem);
 		}
 	}
 
+	private void createCommonComponentEntries(String category) {
+		if(ListUtils.isNotEmpty(commonComponentEntries)) {
+			for (Pair<String, ? extends JComponent> entry : commonComponentEntries) {
+				entry.getF().setName(entry.getE());
+				addPreferenceEntry(new PreferenceEntry(entry.getE(), entry.getE(), entry.getF(), category));				
+			}
+		}
+	}
+	
 	public boolean isShowLandscapePageEntries() {
 		return showLandscapePageEntries;
 	}
 
 	public void setShowLandscapePageEntries(boolean showLandscapePageEntries) {
 		this.showLandscapePageEntries = showLandscapePageEntries;
-	}
-
-	/**
-	 * Tells if the slider for reducing the image quality should be shown.
-	 */
-	public boolean isShowImageSizeEntry() {
-		return showImageSizeEntry;
-	}
-
-	public void setShowImageSizeEntry(boolean showImageSizeEntry) {
-		this.showImageSizeEntry = showImageSizeEntry;
 	}
 	
 	/**
@@ -154,6 +140,35 @@ class ConverterPreferenceView extends JPreferenceDialog {
 			}
 		}
 		return result;
+	}
+
+	public void addCommonListSelection(String label, List<String> entries, String selectedEntry) {
+		JComboBox<String> combobox = new JRComboBox<>();
+		combobox.setModel(new DefaultComboBoxModel<String>(entries.toArray(new String[entries.size()])));
+		combobox.setSelectedItem(selectedEntry);
+		
+		commonComponentEntries.add(new Pair<String, JComboBox<String>>(label, combobox));
+	}
+
+	public void addCommonCheckBox(String label, Boolean selected) {
+		JCheckBox checkbox = new JRCheckBox();
+		checkbox.setSelected(selected);
+		
+		commonComponentEntries.add(new Pair<String, JCheckBox>(label, checkbox));
+	}
+
+	public void addCommonSlider(String label, Integer selected) {
+		JSlider slider = new JSlider();
+		slider.setMaximum(100);
+		slider.setValue(selected);
+		slider.setMajorTickSpacing(10);
+		slider.setMinorTickSpacing(5);
+		slider.setPaintTicks(true);
+		slider.setPaintLabels(true);
+		slider.setSnapToTicks(true);
+		slider.setMinimumSize(new Dimension(220, 45));
+
+		commonComponentEntries.add(new Pair<String, JSlider>(label, slider));
 	}
 	
 }

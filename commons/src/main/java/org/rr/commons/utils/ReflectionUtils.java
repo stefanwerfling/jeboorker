@@ -18,6 +18,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -732,7 +733,7 @@ public class ReflectionUtils implements Serializable {
 			}
 			
 			//Get all matching methods
-			List<Method> methods = ListUtils.union(Arrays.asList(clazz.getDeclaredMethods()), Arrays.asList(clazz.getMethods()));
+			List<Method> methods = clazz != null ? ListUtils.union(Arrays.asList(clazz.getDeclaredMethods()), Arrays.asList(clazz.getMethods())) : Collections.<Method>emptyList();
 			for (Method m : methods) {
 				String targetMethodName = m.getName();
 				if (targetMethodName.equalsIgnoreCase(methodName) && m.getParameterTypes().length == args.length ) { //Method name match
@@ -1189,31 +1190,6 @@ public class ReflectionUtils implements Serializable {
 		}
 		return is64bit;
 	}	
-	
-	/**
-	* Adds the specified path to the java library path
-	*
-	* @param pathToAdd the path to add
-	*/
-	public static void addLibraryPath(String pathToAdd) throws Exception {
-		final Field usrPathsField = ClassLoader.class.getDeclaredField("usr_paths");
-		usrPathsField.setAccessible(true);
-
-		// get array of paths
-		final String[] paths = (String[]) usrPathsField.get(null);
-
-		// check if the path to add is already present
-		for (String path : paths) {
-			if (path.equals(pathToAdd)) {
-				return;
-			}
-		}
-
-		// add the new path
-		final String[] newPaths = Arrays.copyOf(paths, paths.length + 1);
-		newPaths[newPaths.length - 1] = pathToAdd;
-		usrPathsField.set(null, newPaths);
-	}
 
     /**
      * Writes the stack trace of the current Thread to a String.

@@ -9,11 +9,15 @@ import javax.swing.tree.TreePath;
 
 import org.rr.commons.log.LoggerFactory;
 import org.rr.commons.mufs.IResourceHandler;
+import org.rr.commons.swing.components.tree.JRTree;
 
 public abstract class AbstractFileTreeModel extends DefaultTreeModel {
+	
+	protected JRTree tree;
 
-	public AbstractFileTreeModel(TreeNode root) {
+	public AbstractFileTreeModel(TreeNode root, JRTree tree) {
 		super(root);
+		this.tree = tree;
 	}
 
 	@Override
@@ -42,11 +46,10 @@ public abstract class AbstractFileTreeModel extends DefaultTreeModel {
 	 */
 	public void reload(IResourceHandler resourceToRefresh, List<TreePath> treePathRows) {
 		for (TreePath pathForRow : treePathRows) {
-			if(pathForRow.getLastPathComponent() instanceof FileSystemNode) {
+			if(pathForRow != null && pathForRow.getLastPathComponent() instanceof FileSystemNode) {
 				IResourceHandler resourceHandler = ((FileSystemNode) pathForRow.getLastPathComponent()).getResource();
 				if(resourceHandler.equals(resourceToRefresh)) {
 					reload((TreeNode) pathForRow.getLastPathComponent());
-					break;
 				}
 			}
 		}

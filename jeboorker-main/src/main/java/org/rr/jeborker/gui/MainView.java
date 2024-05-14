@@ -70,11 +70,11 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultTreeSelectionModel;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jdesktop.jxlayer.JXLayer;
 import org.jdesktop.jxlayer.plaf.AbstractLayerUI;
 import org.rr.commons.collection.FilterList;
@@ -93,7 +93,6 @@ import org.rr.commons.swing.components.tree.TreeUtil;
 import org.rr.commons.swing.components.util.EnablePropertyChangeHighlighterSupport;
 import org.rr.commons.swing.dnd.DragAndDropUtils;
 import org.rr.commons.swing.dnd.FileTransferable;
-import org.rr.commons.swing.dnd.URIListTransferable;
 import org.rr.commons.swing.image.SimpleImageViewer;
 import org.rr.commons.swing.layout.EqualsLayout;
 import org.rr.commons.utils.CommonUtils;
@@ -150,8 +149,6 @@ import skt.swing.StringConvertor;
 
 
 class MainView extends JFrame {
-
-	private static final long serialVersionUID = 6837919427429399376L;
 
 	private class MainViewPreferenceListener extends JeboorkerPreferenceListener {
 
@@ -347,155 +344,155 @@ class MainView extends JFrame {
 		JPanel propertyContentPanel = new JPanel(new MigLayout("insets 0 0 0 0"));
 		mainSplitPane.setLeftComponent(propertyContentPanel);
 
-			sortColumnComponent = new SortColumnComponent();
-			propertyContentPanel.add(sortColumnComponent, "h 25!, w 100%, wrap");
+		sortColumnComponent = new SortColumnComponent();
+		propertyContentPanel.add(sortColumnComponent, "h 25!, w 100%, wrap");
 
-			treeMainTableSplitPane = new JSplitPane();
-			treeMainTableSplitPane.setDividerLocation(220);
-			propertyContentPanel.add(treeMainTableSplitPane, "h 100%, w 100%");
+		treeMainTableSplitPane = new JSplitPane();
+		treeMainTableSplitPane.setDividerLocation(220);
+		propertyContentPanel.add(treeMainTableSplitPane, "h 100%, w 100%");
 
-			createMainTable();
+		createMainTable();
 
-			mainTableScrollPane = new JRScrollPane();
-			treeMainTableSplitPane.setRightComponent(mainTableScrollPane);
-			mainTableLayer = new JXLayer<JRTable>(mainTable, new AbstractLayerUI<JRTable>() {
+		mainTableScrollPane = new JRScrollPane();
+		treeMainTableSplitPane.setRightComponent(mainTableScrollPane);
+		mainTableLayer = new JXLayer<JRTable>(mainTable, new AbstractLayerUI<JRTable>() {
 
-				@Override
-				protected void processMouseEvent(final MouseEvent e, final JXLayer<? extends JRTable> l) {
-					if(preferenceStore.getEntryAsBoolean(PreferenceStoreFactory.PREFERENCE_KEYS.MAIN_TABLE_AUTO_SAVE_METADATA_ENABLED)) {
-						transferFocusOnClick(e, l);
+			@Override
+			protected void processMouseEvent(final MouseEvent e, final JXLayer<? extends JRTable> l) {
+				if(preferenceStore.getEntryAsBoolean(PreferenceStoreFactory.PREFERENCE_KEYS.MAIN_TABLE_AUTO_SAVE_METADATA_ENABLED)) {
+					transferFocusOnClick(e, l);
 
-						//save meta data and dispatch the mouse event to the jtable so it changes the selection
-						if(saveMetadataButton.isEnabled()) {
-							if(e.getID() == MouseEvent.MOUSE_PRESSED && e.getSource() == mainTable ) {
-								SwingUtilities.invokeLater(new Runnable() {
-									public void run() {
-										ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.SAVE_METADATA_ACTION, null)
-										.invokeAction(null, new Runnable() {
-											public void run() {
-												SwingUtilities.invokeLater(new Runnable() {
+					//save meta data and dispatch the mouse event to the jtable so it changes the selection
+					if(saveMetadataButton.isEnabled()) {
+						if(e.getID() == MouseEvent.MOUSE_PRESSED && e.getSource() == mainTable ) {
+							SwingUtilities.invokeLater(new Runnable() {
+								public void run() {
+									ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.SAVE_METADATA_ACTION, null)
+									.invokeAction(null, new Runnable() {
+										public void run() {
+											SwingUtilities.invokeLater(new Runnable() {
 
-													@Override
-													public void run() {
-														MouseEvent click = new MouseEvent((Component) e.getSource(), MouseEvent.MOUSE_CLICKED, e.getWhen(),
-																e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(),
-																e.getClickCount(), e.isPopupTrigger(), e.getButton());
-														for(MouseListener ml: l.getView().getMouseListeners()){
-														    ml.mousePressed(click);
-														    ml.mouseReleased(click);
-														    ml.mouseClicked(click);
-														}
+												@Override
+												public void run() {
+													MouseEvent click = new MouseEvent((Component) e.getSource(), MouseEvent.MOUSE_CLICKED, e.getWhen(),
+															e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(),
+															e.getClickCount(), e.isPopupTrigger(), e.getButton());
+													for(MouseListener ml: l.getView().getMouseListeners()){
+													    ml.mousePressed(click);
+													    ml.mouseReleased(click);
+													    ml.mouseClicked(click);
 													}
-												});
-											}
-										});
-									}
-								});
+												}
+											});
+										}
+									});
+								}
+							});
 
-							}
-							e.consume();
 						}
+						e.consume();
 					}
 				}
+			}
 
-				private void transferFocusOnClick(final MouseEvent e, final JXLayer<? extends JRTable> l) {
-					if(e.getID() != MouseEvent.MOUSE_DRAGGED && e.getID() != MouseEvent.MOUSE_MOVED
-							&& e.getID() != MouseEvent.MOUSE_ENTERED && e.getID() != MouseEvent.MOUSE_EXITED) {
-						//transfer the focus cause that the edit mode in the meta data sheet
-						l.getView().requestFocus();
-					}
+			private void transferFocusOnClick(final MouseEvent e, final JXLayer<? extends JRTable> l) {
+				if(e.getID() != MouseEvent.MOUSE_DRAGGED && e.getID() != MouseEvent.MOUSE_MOVED
+						&& e.getID() != MouseEvent.MOUSE_ENTERED && e.getID() != MouseEvent.MOUSE_EXITED) {
+					//transfer the focus cause that the edit mode in the meta data sheet
+					l.getView().requestFocus();
 				}
+			}
 
-				public long getLayerEventMask() {
-					//fix for mouse wheel scrolling @see https://www.java.net//node/696371
-					return AWTEvent.MOUSE_EVENT_MASK;
+			public long getLayerEventMask() {
+				//fix for mouse wheel scrolling @see https://www.java.net//node/696371
+				return AWTEvent.MOUSE_EVENT_MASK;
+			}
+		});
+		mainTableScrollPane.setViewportView(mainTableLayer);
+
+		treeTabbedPane = new JTabbedPane();
+		treeTabbedPane.setDropTarget(new DropTarget(treeTabbedPane, new DropTargetAdapter() {
+
+			@Override
+			public void dragOver(DropTargetDragEvent dtde) {
+				Point location = dtde.getLocation();
+				int indexAtLocation = treeTabbedPane.indexAtLocation(location.x, location.y);
+				if(indexAtLocation >= 0) {
+					treeTabbedPane.setSelectedIndex(indexAtLocation);
 				}
-			});
-			mainTableScrollPane.setViewportView(mainTableLayer);
+			}
 
-			treeTabbedPane = new JTabbedPane();
-			treeTabbedPane.setDropTarget(new DropTarget(treeTabbedPane, new DropTargetAdapter() {
+			@Override
+			public void drop(DropTargetDropEvent dtde) {
+			}
+		}));
 
-				@Override
-				public void dragOver(DropTargetDragEvent dtde) {
-					Point location = dtde.getLocation();
-					int indexAtLocation = treeTabbedPane.indexAtLocation(location.x, location.y);
-					if(indexAtLocation >= 0) {
-						treeTabbedPane.setSelectedIndex(indexAtLocation);
-					}
-				}
+		JComponent fileSystemTreeComp = createFileSystemTree();
+		treeTabbedPane.addTab(Bundle.getString("EborkerMainView.tabbedPane.fileSystem"), fileSystemTreeComp);
 
-				@Override
-				public void drop(DropTargetDropEvent dtde) {
-				}
-			}));
+		JComponent basePathTreeComp = createBasePathTree();
+		treeTabbedPane.addTab(Bundle.getString("EborkerMainView.tabbedPane.basePath"), basePathTreeComp);
 
-			JComponent fileSystemTreeComp = createFileSystemTree();
-			treeTabbedPane.addTab(Bundle.getString("EborkerMainView.tabbedPane.fileSystem"), fileSystemTreeComp);
+		treeMainTableSplitPane.setLeftComponent(treeTabbedPane);
+		treeMainTableSplitPane.setOneTouchExpandable(true);
 
-			JComponent basePathTreeComp = createBasePathTree();
-			treeTabbedPane.addTab(Bundle.getString("EborkerMainView.tabbedPane.basePath"), basePathTreeComp);
+		JPanel sheetPanel = new JPanel(new MigLayout("insets 0 0 0 0"));
 
-			treeMainTableSplitPane.setLeftComponent(treeTabbedPane);
-			treeMainTableSplitPane.setOneTouchExpandable(true);
+		propertySheet = new PropertySheetPanel(new EbookSheetPropertyModel());
+		propertySheet.setMode(PropertySheet.VIEW_AS_FLAT_LIST);
+		propertySheet.setDescriptionVisible(true);
+		propertySheet.setShowCategoryButton(false);
 
-			JPanel sheetPanel = new JPanel(new MigLayout("insets 0 0 0 0"));
+		addMetadataButton = new JMenuButton();
+		addMetadataButton.setIcon(new ImageIcon(Bundle.getResource("add_metadata_16.png")));
+		addMetadataButton.setText(EMPTY);
+		addMetadataButton.setWidth(50);
+		EmptyListModel<Action> emptyListModel = EmptyListModel.getSharedInstance();
+		addMetadataButton.setListModel(emptyListModel);
+		propertySheet.addToolbarComponent(addMetadataButton);
 
-			propertySheet = new PropertySheetPanel(new EbookSheetPropertyModel());
-			propertySheet.setMode(PropertySheet.VIEW_AS_FLAT_LIST);
-			propertySheet.setDescriptionVisible(true);
-			propertySheet.setShowCategoryButton(false);
+		removeMetadataButton = new JButton(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.REMOVE_METADATA_ENTRY_ACTION, null));
+		propertySheet.addToolbarComponent(removeMetadataButton);
 
-			addMetadataButton = new JMenuButton();
-			addMetadataButton.setIcon(new ImageIcon(Bundle.getResource("add_metadata_16.png")));
-			addMetadataButton.setText(EMPTY);
-			addMetadataButton.setWidth(50);
-			EmptyListModel<Action> emptyListModel = EmptyListModel.getSharedInstance();
-			addMetadataButton.setListModel(emptyListModel);
-			propertySheet.addToolbarComponent(addMetadataButton);
+		saveMetadataButton = new JButton(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.SAVE_METADATA_ACTION, null));
+		saveMetadataButton.setText(EMPTY);
+		new EnablePropertyChangeHighlighterSupport(saveMetadataButton, Color.RED, 3);
 
-			removeMetadataButton = new JButton(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.REMOVE_METADATA_ENTRY_ACTION, null));
-			propertySheet.addToolbarComponent(removeMetadataButton);
+		propertySheet.addToolbarComponent(saveMetadataButton);
 
-			saveMetadataButton = new JButton(ActionFactory.getAction(ActionFactory.COMMON_ACTION_TYPES.SAVE_METADATA_ACTION, null));
-			saveMetadataButton.setText(EMPTY);
-			new EnablePropertyChangeHighlighterSupport(saveMetadataButton, Color.RED, 3);
+		((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer((Class<?>) null, DefaultPropertyRenderer.class);
+		((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor((Class<?>) null, DefaultPropertyCellEditor.class);
+		((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(String.class, DefaultPropertyRenderer.class);
+		((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(String.class, DefaultPropertyCellEditor.class);
 
-			propertySheet.addToolbarComponent(saveMetadataButton);
+		DatePropertyCellRenderer calendarDatePropertyRenderer = new DatePropertyCellRenderer(((SimpleDateFormat) SimpleDateFormat.getDateInstance()).toPattern());
+    ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(Date.class, new DatePropertyCellEditor());
+    ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(Date.class, calendarDatePropertyRenderer);
 
-			((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer((Class<?>) null, DefaultPropertyRenderer.class);
-			((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor((Class<?>) null, DefaultPropertyCellEditor.class);
-			((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(String.class, DefaultPropertyRenderer.class);
-			((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(String.class, DefaultPropertyCellEditor.class);
+    ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor("rating", StarRatingPropertyEditor.class);
+    ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer("rating", StarRatingPropertyRenderer.class);
+    ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor("calibre:rating", StarRatingPropertyEditor.class);
+    ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer("calibre:rating", StarRatingPropertyRenderer.class);
 
-			DatePropertyCellRenderer calendarDatePropertyRenderer = new DatePropertyCellRenderer(((SimpleDateFormat) SimpleDateFormat.getDateInstance()).toPattern());
-	        ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(Date.class, new DatePropertyCellEditor());
-	        ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(Date.class, calendarDatePropertyRenderer);
+    ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(java.util.List.class, MultiListPropertyEditor.class);
+    ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(java.util.List.class, MultiListPropertyRenderer.class);
 
-	        ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor("rating", StarRatingPropertyEditor.class);
-	        ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer("rating", StarRatingPropertyRenderer.class);
-	        ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor("calibre:rating", StarRatingPropertyEditor.class);
-	        ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer("calibre:rating", StarRatingPropertyRenderer.class);
+		sheetPanel.add(propertySheet, "w 100%, h 100%");
 
-	        ((PropertyEditorRegistry)propertySheet.getEditorFactory()).registerEditor(java.util.List.class, MultiListPropertyEditor.class);
-	        ((PropertyRendererRegistry)propertySheet.getRendererFactory()).registerRenderer(java.util.List.class, MultiListPropertyRenderer.class);
+		propertySheetImageSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		propertySheetImageSplitPane.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		propertySheetImageSplitPane.setOneTouchExpandable(true);
+		mainSplitPane.setRightComponent(propertySheetImageSplitPane);
 
-			sheetPanel.add(propertySheet, "w 100%, h 100%");
+		JPanel imageViewerPanel = new JPanel(new MigLayout("insets 0 0 0 0"));
+		imageViewerPanel.setBorder(new EmptyBorder(3,3,3,3));
+		imageViewer = new SimpleImageViewer();
+		imageViewerPanel.add(imageViewer, "w 100%, h 100%");
+		propertySheetImageSplitPane.setRightComponent(imageViewerPanel);
+		propertySheetImageSplitPane.setLeftComponent(sheetPanel);
+		propertySheetImageSplitPane.setDividerLocation(getSize().height / 2);
 
-			propertySheetImageSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-			propertySheetImageSplitPane.setAlignmentX(Component.RIGHT_ALIGNMENT);
-			propertySheetImageSplitPane.setOneTouchExpandable(true);
-			mainSplitPane.setRightComponent(propertySheetImageSplitPane);
-
-			JPanel imageViewerPanel = new JPanel(new MigLayout("insets 0 0 0 0"));
-			imageViewerPanel.setBorder(new EmptyBorder(3,3,3,3));
-			imageViewer = new SimpleImageViewer();
-			imageViewerPanel.add(imageViewer, "w 100%, h 100%");
-			propertySheetImageSplitPane.setRightComponent(imageViewerPanel);
-			propertySheetImageSplitPane.setLeftComponent(sheetPanel);
-			propertySheetImageSplitPane.setDividerLocation(getSize().height / 2);
-
-			mainSplitPane.setDividerLocation(getSize().width - 220);
+		mainSplitPane.setDividerLocation(getSize().width - 220);
 
 
 		filterFieldComponent = new FilterPanelComponent();
@@ -510,6 +507,8 @@ class MainView extends JFrame {
 		progressBar = new JProgressBar();
 		statusPanel.add(progressBar, "w 100%");
 
+		applyFilterActionToAllComponents(contentPane);
+		
 		this.setContentPane(contentPane);
 		this.setJMenuBar(MainMenuBarController.getController().getView());
 
@@ -518,6 +517,13 @@ class MainView extends JFrame {
 		treeComponentHandler = new MainViewTreeComponentHandler(basePathTree, fileSystemTree, this);
 		propertySheetHandler = new MainViewPropertySheetHandler(propertySheet, this);
 		ebookTableHandler = new MainViewEbookTableComponentHandler(mainTable, mainTableScrollPane);
+	}
+
+	private void applyFilterActionToAllComponents(JPanel contentPane) {
+		Component[] allComponents = SwingUtils.getAllComponents(JComponent.class, contentPane);
+		for (Component component : allComponents) {
+			MainViewMenuUtils.registerApplyFilterKeyAction((JComponent) component);			
+		}
 	}
 
 	/**
@@ -614,6 +620,7 @@ class MainView extends JFrame {
 		MainViewMenuUtils.registerDeleteKeyAction(mainTable);
 		MainViewMenuUtils.registerRefreshEntryKeyAction(mainTable);
 		MainViewMenuUtils.registerRenameFileKeyAction(mainTable);
+		MainViewMenuUtils.registerApplyFilterKeyAction(mainTable);
 
 		mainTable.putClientProperty(StringConvertor.class, new StringConvertor() {
 
@@ -686,15 +693,7 @@ class MainView extends JFrame {
 							}
 		        }
 
-		        if(CommonUtils.isLinux()) {
-		        	if(ReflectionUtils.javaVersion() == 16) {
-		        		return new URIListTransferable(uriList, null);
-		        	} else {
-		        		return new FileTransferable(files);
-		        	}
-		        } else {
-		        	return new FileTransferable(files);
-		        }
+		        return new FileTransferable(files);
 		    }
 		});
 	}
@@ -727,7 +726,7 @@ class MainView extends JFrame {
 
 		fileSystemTree.setName(fileSystemTreeName);
 		fileSystemTree.setSelectionModel(new DefaultTreeSelectionModel());
-		FileSystemTreeModel fileSystemTreeModel = new FileSystemTreeModel();
+		FileSystemTreeModel fileSystemTreeModel = new FileSystemTreeModel(fileSystemTree);
 		fileSystemTree.setModel(fileSystemTreeModel);
 		fileSystemTree.setAutoMoveHorizontalSliders(preferenceStore.isTreeAutoScrollingEnabled());
 		fileSystemTree.setEditable(true);
@@ -806,6 +805,7 @@ class MainView extends JFrame {
 		MainViewMenuUtils.registerPasteFromClipboardKeyAction(fileSystemTree);
 		MainViewMenuUtils.registerDeleteKeyAction(fileSystemTree);
 		MainViewMenuUtils.registerFileSystemRefreshKeyAction(fileSystemTree);
+		MainViewMenuUtils.registerApplyFilterKeyAction(fileSystemTree);
 
 		fileSystemTree.setDragEnabled(true);
 		fileSystemTree.setTransferHandler(new TransferHandler() {
@@ -829,38 +829,32 @@ class MainView extends JFrame {
 				Object lastPath = dropRow.getLastPathComponent();
 				try {
 					IResourceHandler targetPathResource = ((FileSystemNode) lastPath).getResource();
-					boolean reloadParent = false;
 					if (targetPathResource.isFileResource()) {
 						targetPathResource = targetPathResource.getParentResource();
-						reloadParent = true;
 					}
 					Transferable transferable = info.getTransferable();
+					boolean isLocal = (boolean) ReflectionUtils.getFieldValue(transferable, "isLocal", false);
 					List<IResourceHandler> sourceResourceHandlers = ResourceHandlerFactory.getResourceHandler(transferable);
 					for (IResourceHandler sourceResourceHandler : sourceResourceHandlers) {
 						String basePathFor = preferenceStore.getBasePathFor(targetPathResource);
 						if (basePathFor != null) {
 							// drop to a folder that is managed by jeboorker.
-							PasteFromClipboardAction.importEbookFromClipboard(transferable, Integer.MIN_VALUE, basePathFor, targetPathResource);
+							PasteFromClipboardAction.importEbookFromClipboard(transferable, basePathFor, targetPathResource);
 						} else {
-							// do a simple copy
+							// do a simple copy or move
 							IResourceHandler targetPathResourceFile = targetPathResource.addPathStatement(sourceResourceHandler.getName());
 							if(notEqual(sourceResourceHandler, targetPathResourceFile)) {
 								IResourceHandler uniqueTargetPathResourceFile = ResourceHandlerFactory.getUniqueResourceHandler(targetPathResourceFile,
 										targetPathResourceFile.getFileExtension());
-								sourceResourceHandler.copyTo(uniqueTargetPathResourceFile, false);
+								if(isLocal || (MOVE & info.getSourceDropActions()) == MOVE) {
+									sourceResourceHandler.moveTo(uniqueTargetPathResourceFile, false);
+									treeComponentHandler.refreshFileSystemTreeEntry(sourceResourceHandler);
+								} else {
+									sourceResourceHandler.copyTo(uniqueTargetPathResourceFile, false);
+								}
 							}
 						}
-						if (reloadParent) {
-							TreeNode node = (TreeNode) dropRow.getLastPathComponent();
-							TreeNode parentNode = node.getParent();
-							if (parentNode != null) {
-								((DefaultTreeModel) fileSystemTree.getModel()).reload(parentNode);
-							} else {
-								((DefaultTreeModel) fileSystemTree.getModel()).reload(node);
-							}
-						} else {
-							((DefaultTreeModel) fileSystemTree.getModel()).reload((TreeNode) dropRow.getLastPathComponent());
-						}
+						treeComponentHandler.refreshFileSystemTreeEntry(targetPathResource);
 					}
 				} catch (Exception e) {
 					LoggerFactory.getLogger(this).log(Level.WARNING, e.getMessage(), e);
@@ -892,15 +886,7 @@ class MainView extends JFrame {
 					}
 				}
 
-				if (CommonUtils.isLinux()) {
-					if (ReflectionUtils.javaVersion() == 16) {
-						return new URIListTransferable(uriList, null);
-					} else {
-						return new FileTransferable(files);
-					}
-				} else {
-					return new FileTransferable(files);
-				}
+				return new FileTransferable(files);
 			}
 		});
 
@@ -982,7 +968,7 @@ class MainView extends JFrame {
 		basePathTree = new JRTree();
 		setupTree(basePathTree);
 		basePathTree.setName(basePathTreeName);
-		basePathTree.setModel(new BasePathTreeModel());
+		basePathTree.setModel(new BasePathTreeModel(basePathTree));
 		basePathTree.setEditable(true);
 		BasePathTreeCellRenderer basePathTreeCellRenderer = new BasePathTreeCellRenderer(basePathTree);
 		basePathTree.setCellRenderer(basePathTreeCellRenderer);
@@ -1000,34 +986,29 @@ class MainView extends JFrame {
 		basePathTree.setRowHeight(25);
 
 		MainViewMenuUtils.registerDeleteKeyAction(basePathTree);
+		MainViewMenuUtils.registerApplyFilterKeyAction(basePathTree);
+		
 
 		basePathTree.addMouseListener(new MouseAdapter() {
 
 			private static final String QUERY_IDENTIFER = "BASE_PATH_MOUSE_LISTENER";
-
-			private Object previousEditorValue;
 
 			@Override
 			public void mousePressed(MouseEvent e) {
 				final int row = basePathTree.getRowForLocation(e.getPoint().x, e.getPoint().y);
 				final TreePath filterTreePath = basePathTree.getPathForRow(row);
 
-				if(filterTreePath != null) {
+				if (filterTreePath != null) {
 					Object cellEditorValue = filterTreePath.getLastPathComponent();
-					if(cellEditorValue == null || !cellEditorValue.equals(previousEditorValue)) {
-						if(cellEditorValue instanceof FileSystemNode) {
-							setPathFilter(((FileSystemNode)cellEditorValue).getName());
-							((BasePathTreeModel)basePathTree.getModel()).setFilterTreePath(filterTreePath);
-							MainController.getController().getEbookTableHandler().refreshTable();
-						} else {
-							boolean remove = MainController.getController().changeToDatabaseModel().removeWhereCondition(QUERY_IDENTIFER);
-							((BasePathTreeModel)basePathTree.getModel()).setFilterTreePath(null);
-							if(remove) {
-								MainController.getController().getEbookTableHandler().refreshTable();
-							}
-						}
+					if (cellEditorValue instanceof FileSystemNode) {
+						setPathFilter(((FileSystemNode) cellEditorValue).getName());
+						((BasePathTreeModel) basePathTree.getModel()).setFilterTreePath(filterTreePath);
+						MainController.getController().getEbookTableHandler().refreshTable();
+					} else {
+						MainController.getController().changeToDatabaseModel().removeWhereCondition(QUERY_IDENTIFER);
+						((BasePathTreeModel) basePathTree.getModel()).setFilterTreePath(null);
+						MainController.getController().getEbookTableHandler().refreshTable();
 					}
-					previousEditorValue = cellEditorValue;
 				}
 			}
 
@@ -1042,8 +1023,7 @@ class MainView extends JFrame {
 
 					@Override
 					public void appendQuery(Where<EbookPropertyItem, EbookPropertyItem> where) throws SQLException {
-						String fullResourceFilterPathStatement = StringUtil.replace(fullResourceFilterPath, "\\", "\\\\");
-						where.like("file", fullResourceFilterPathStatement + "%");
+						where.like("file", StringUtil.escapeSql(fullResourceFilterPath) + "%");
 					}
 				});
 			}
@@ -1073,7 +1053,7 @@ class MainView extends JFrame {
                 IResourceHandler firstPathResource = ((FileSystemNode) firstPath).getResource();
                 IResourceHandler lastPathPathResource = ((FileSystemNode) lastPath).getResource();
                 try {
-					PasteFromClipboardAction.importEbookFromClipboard(info.getTransferable(), Integer.MIN_VALUE, firstPathResource.toString(), lastPathPathResource);
+					PasteFromClipboardAction.importEbookFromClipboard(info.getTransferable(), firstPathResource.toString(), lastPathPathResource);
 					basePathTree.startEditingAtPath(dropRow);
 				} catch (Exception e) {
 					try {

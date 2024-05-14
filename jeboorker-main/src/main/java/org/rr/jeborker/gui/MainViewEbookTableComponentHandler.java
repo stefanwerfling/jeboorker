@@ -66,8 +66,8 @@ public class MainViewEbookTableComponentHandler {
 					mainTable.stopEdit();
 				}
 
-				if(model instanceof EbookPropertyDBTableModel) {
-					((EbookPropertyDBTableModel)model).reloadEbookPropertyItemAt(selectedRows[i]);
+				if(model instanceof ReloadableTableModel) {
+					((ReloadableTableModel)model).reloadEbookPropertyItemAt(selectedRows[i]);
 				}
 				mainTable.tableChanged(new TableModelEvent(model, selectedRows[i]));
 			}
@@ -78,7 +78,7 @@ public class MainViewEbookTableComponentHandler {
 	 * Refresh the whole table.
 	 */
 	public void refreshTable() {
-		final EbookPropertyDBTableModel model = (EbookPropertyDBTableModel) mainTable.getModel();
+		final TableModel model = mainTable.getModel();
 		if(model instanceof EbookPropertyDBTableModel) {
 			((EbookPropertyDBTableModel)model).setDirty();
 		}
@@ -120,13 +120,7 @@ public class MainViewEbookTableComponentHandler {
 	 */
 	public int[] getSelectedRows() {
 		if (mainTable != null) {
-			int[] selectedRows = mainTable.getSelectedRows();
-			
-			// if there is only one row this is always the selected one.
-			if(selectedRows.length == 0 && mainTable.getRowCount() == 1) {
-				return new int[1];
-			}
-			return selectedRows;
+			return mainTable.getSelectedRows();
 		} else {
 			return new int[0];
 		}
@@ -166,6 +160,10 @@ public class MainViewEbookTableComponentHandler {
 
 	public int getSelectedRowCount() {
 		return mainTable.getSelectedRowCount();
+	}
+	
+	public void setSelectionInterval(int from, int to) {
+		mainTable.getSelectionModel().setSelectionInterval(from, to);
 	}
 
 }

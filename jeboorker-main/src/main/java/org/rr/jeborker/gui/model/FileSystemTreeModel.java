@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 
-import javax.swing.JTree;
 import javax.swing.event.TreeModelListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -16,8 +15,7 @@ import javax.swing.tree.TreePath;
 import org.rr.commons.log.LoggerFactory;
 import org.rr.commons.mufs.IResourceHandler;
 import org.rr.commons.mufs.ResourceHandlerFactory;
-import org.rr.commons.swing.components.tree.TreeUtil;
-import org.rr.commons.utils.ListUtils;
+import org.rr.commons.swing.components.tree.JRTree;
 
 public class FileSystemTreeModel extends AbstractFileTreeModel {
 
@@ -25,8 +23,8 @@ public class FileSystemTreeModel extends AbstractFileTreeModel {
 
 	private DefaultMutableTreeNode root;
 
-	public FileSystemTreeModel() {
-		super(new DefaultMutableTreeNode("root"));
+	public FileSystemTreeModel(JRTree tree) {
+		super(new DefaultMutableTreeNode("root"), tree);
 		this.root = (DefaultMutableTreeNode) getRoot();
 		init();
 	}
@@ -35,7 +33,7 @@ public class FileSystemTreeModel extends AbstractFileTreeModel {
 		List<File> specialFolders = getSpecialFolders();
 		for(File specialFolder : specialFolders) {
 			IResourceHandler resourceHandler = ResourceHandlerFactory.getResourceHandler(specialFolder);
-			FileSystemNode basePathNode = new FileSystemNode(resourceHandler, null);
+			FileSystemNode basePathNode = new FileSystemNode(resourceHandler, null, tree);
 			this.root.add(basePathNode);
 		}
 
@@ -44,7 +42,7 @@ public class FileSystemTreeModel extends AbstractFileTreeModel {
 		for(File root : listRoots) {
 			if(!root.toString().equalsIgnoreCase("A:\\")) {
 				IResourceHandler resourceHandler = ResourceHandlerFactory.getResourceHandler(root);
-				FileSystemNode basePathNode = new FileSystemNode(resourceHandler, null);
+				FileSystemNode basePathNode = new FileSystemNode(resourceHandler, null, tree);
 				this.root.add(basePathNode);
 			}
 		}

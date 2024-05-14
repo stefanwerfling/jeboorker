@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
@@ -240,7 +241,7 @@ public class DocScissorsMainFrame extends JFrame implements ModelListener {
 				public void valueChanged(ListSelectionEvent e) {
 					int selectedIndex = pageGroupList.getSelectedIndex();
 					if (selectedIndex >= 0) {
-						PageGroup currentGroup = Model.getInstance().getPageGroups().elementAt(selectedIndex);
+						PageGroup currentGroup = Model.getInstance().getPageGroups().get(selectedIndex);
 						uiHandler.setPageGroup(currentGroup);
 					}
 				}
@@ -320,8 +321,7 @@ public class DocScissorsMainFrame extends JFrame implements ModelListener {
 					progressMonitor.setProgress(progress, 100);
 				} else if ("done".equals(evt.getPropertyName())) {
 					lock.countDown();
-					MainController.getController().getProgressMonitor().blockMainFrame(false);
-					progressMonitor.clearMessage();
+					MainController.getController().getProgressMonitor().blockMainFrame(false).clearMessage();
 				} else if ("message".equals(evt.getPropertyName())) {
 					progressMonitor.setMessage((String)evt.getNewValue());
 				}
@@ -672,12 +672,12 @@ public class DocScissorsMainFrame extends JFrame implements ModelListener {
 	}
 
 	@Override
-	public void pageGroupChanged(Vector<PageGroup> pageGroups) {
+	public void pageGroupChanged(List<PageGroup> pageGroups) {
 		JList<PageGroup> list = getPageGroupList();
 		list.removeAll();
 		DefaultListModel<PageGroup> listModel = new DefaultListModel<>();
 		for (int i = 0; i < pageGroups.size(); i++) {
-			listModel.add(i, pageGroups.elementAt(i));
+			listModel.add(i, pageGroups.get(i));
 		}
 		list.setModel(listModel);
 		list.setSelectedIndex(0);

@@ -75,7 +75,7 @@ public abstract class DefaultDBManager {
 	public synchronized void shutdown() {
 		try {
 			connection.close();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			LoggerFactory.log(Level.SEVERE, this, "shutdown database has failed", e);
 		}
 	}
